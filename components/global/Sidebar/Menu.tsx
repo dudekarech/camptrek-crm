@@ -8,9 +8,9 @@ const Menu = () => {
       <hr className='m-2 border-gray-500' />
       <ul className='flex flex-col gap-2'>
         <SidebarButton>Business Overview</SidebarButton>
-        <SidebarButton url='/leads'>Leads</SidebarButton>
+        <SidebarButton url='/inbox'>Inbox</SidebarButton>
         <SidebarButton url='/itineraries'>Itineraries</SidebarButton>
-        <SidebarButton url='/client-history'>Client History</SidebarButton>
+        <SidebarButton url='/blogs'>Blogs</SidebarButton>
       </ul>
     </section>
   )
