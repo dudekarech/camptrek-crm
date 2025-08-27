@@ -1,29 +1,51 @@
 'use client'
+import React, { useEffect, useState } from 'react'
+import { useForm, FormProvider } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useParams, useRouter } from 'next/navigation'
+import { motion } from "motion/react"
+import { 
+  MapPin, 
+  Calendar, 
+  Plane, 
+  Save, 
+  ArrowLeft, 
+  RefreshCw,
+  CheckCircle,
+  AlertCircle
+} from "lucide-react"
+
+// Import modular components
+import TitleInput from '@/components/pages/itinerary/update/TitleInput'
+import PhotoUploader from '@/components/pages/itinerary/update/PhotoUploader'
+import ContentEditor from '@/components/pages/itinerary/update/ContentEditor'
+import { useToast } from '@/components/ui/ToastContainer'
+
+// Import existing components
 import CustomFormInput from '@/components/pages/itinerary/create/CustomFormInput'
 import AccommodationDropDown from '@/components/pages/itinerary/create/AccomodationDropDown'
 import CostExcludedInput from '@/components/pages/itinerary/create/CostExludedInput'
 import CostIncludedInput from '@/components/pages/itinerary/create/CostIncludedInput'
 import ItineraryDaysInput from '@/components/pages/itinerary/create/ItineraryDaysInput'
-import ItineraryImageUploader from '@/components/pages/itinerary/create/ItineraryImageUploader'
-import ItineraryTextArea from '@/components/pages/itinerary/create/ItineraryTextArea'
 import LocationDropDown from '@/components/pages/itinerary/create/LocationDropDown'
 import TagsInput from '@/components/pages/itinerary/create/TagsInput'
+
+// Import API and types
 import { baseInstance } from '@/constants/api'
 import { ItineraryProps } from '@/constants/propConstants'
 import { itineraryUpdateSchema, TsItineraryUpdate } from '@/store/ItineraryUpdateZodStore'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams, useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
-import { motion } from "motion/react"
-import { MapPin, Calendar, Plane, Save, ArrowLeft, RefreshCw } from "lucide-react"
 
 const UpdatePage = () => {
   const params = useParams()
   const router = useRouter()
-  const id = params?.id as string
   const queryClient = useQueryClient()
+  const { showToast } = useToast()
+  const id = params?.id as string
+
+  // State for tracking changes
+  const [originalData, setOriginalData] = useState<any>(null)
+  const [changedFields, setChangedFields] = useState<Set<string>>(new Set())
   const [isFormDirty, setIsFormDirty] = useState(false)
 
   // Fetch existing itinerary data
@@ -40,13 +62,19 @@ const UpdatePage = () => {
     gcTime: 1000 * 60 * 35,
   })
 
-  // Initialize form with proper resolver
+  // Initialize form
   const methods = useForm<TsItineraryUpdate>({
     resolver: zodResolver(itineraryUpdateSchema) as any,
-    mode: 'onChange', // Enable real-time validation
+    mode: 'onChange',
   })
 
-  const { handleSubmit, reset, formState: { isDirty, dirtyFields } } = methods
+  const { handleSubmit, reset, watch, setValue, formState: { isDirty, dirtyFields } } = methods
+
+  // Track field changes
+  const handleFieldChange = (field: string, value: any) => {
+    setChangedFields(prev => new Set([...prev, field]))
+    setIsFormDirty(true)
+  }
 
   // Reset form when itinerary data loads
   useEffect(() => {
@@ -59,7 +87,6 @@ const UpdatePage = () => {
         price: itinerary.price || 0,
         arrivalCity: itinerary.arrival_city || '',
         departureCity: itinerary.departure_city || '',
-        // Parse tags from comma-separated string to array format
         tags: itinerary.tags 
           ? itinerary.tags.split(',').map(tag => ({ name: tag.trim() }))
           : [{ name: "" }],
@@ -69,14 +96,15 @@ const UpdatePage = () => {
           day: day.day_number,
           title: day.title,
           details: day.details,
-          // Convert existing images to File objects (you might need to handle this differently)
-          images: [] // For now, we'll handle image updates separately
+          images: []
         })) || [],
         costExclusive: itinerary.cost_exclusive?.map(item => ({ item })) || [],
         costInclusive: itinerary.cost_inclusive?.map(item => ({ item })) || []
       }
       
+      setOriginalData(defaultValues)
       reset(defaultValues)
+      setChangedFields(new Set())
       setIsFormDirty(false)
     }
   }, [itinerary, reset])
@@ -86,7 +114,7 @@ const UpdatePage = () => {
     setIsFormDirty(isDirty)
   }, [isDirty])
 
-  // Handle image uploads (reuse logic from create page)
+  // Handle image uploads
   const handleImagesUpload = async (images: { file: File }[]) => {
     const formData = new FormData()
     
@@ -103,9 +131,8 @@ const UpdatePage = () => {
     return response.data
   }
 
-  // Update itinerary function - only send dirty fields
-  const updateItinerary = async (data: TsItineraryUpdate) => {
-    // Create payload with only dirty fields
+  // Build PATCH payload with only changed fields
+  const buildPatchPayload = async (data: TsItineraryUpdate) => {
     const payload: any = {}
 
     // Handle scalar fields that are dirty
@@ -129,7 +156,7 @@ const UpdatePage = () => {
 
     // Handle tags if dirty
     if (dirtyFields.tags) {
-      payload.tags = data.tags?.map(tag => ({ name: tag.name })) || []
+      payload.tags = data.tags?.map(tag => tag.name).filter(Boolean).join(',') || ''
     }
 
     // Handle cost arrays if dirty
@@ -166,12 +193,19 @@ const UpdatePage = () => {
       payload.days = processedDays
     }
 
+    return payload
+  }
+
+  // Update itinerary function - PATCH request
+  const updateItinerary = async (data: TsItineraryUpdate) => {
+    const payload = await buildPatchPayload(data)
+
     // Only proceed if there are changes to send
     if (Object.keys(payload).length === 0) {
       throw new Error("No changes detected to update")
     }
 
-    const response = await baseInstance.patch(`/itineraries/update/${id}`, payload)
+    const response = await baseInstance.patch(`/itineraries/${id}`, payload)
     if (response.status !== 200) {
       throw new Error("Failed to update itinerary")
     }
@@ -186,28 +220,40 @@ const UpdatePage = () => {
       queryClient.invalidateQueries({ queryKey: ['itinerary', id] })
       queryClient.invalidateQueries({ queryKey: ['itineraries'] })
       
-      // Show success message
-      alert(`Itinerary updated successfully! Updated fields: ${data.updated_fields?.join(', ')}`)
+      // Show success toast
+      showToast({
+        type: 'success',
+        title: 'Itinerary Updated Successfully!',
+        message: `Updated fields: ${Object.keys(data.updated_fields || {}).join(', ')}`,
+        duration: 5000
+      })
       
       // Reset form dirty state
       setIsFormDirty(false)
-      
-      // Optionally redirect back to the itinerary view
-      // router.push(`/itineraries/${id}`)
+      setChangedFields(new Set())
     },
     onError: (error: any) => {
       console.error("Update Error:", error.response?.data || error.message)
       
+      let errorMessage = "An unexpected error occurred. Please try again."
+      
       if (error.response?.status === 400) {
-        alert("Update failed. Please check all required fields.")
+        errorMessage = "Update failed. Please check all required fields."
       } else if (error.response?.status === 404) {
-        alert("Itinerary not found.")
+        errorMessage = "Itinerary not found."
         router.push("/itineraries")
       } else if (error.response?.status === 500) {
-        alert("Server error. Please try again later.")
-      } else {
-        alert(error.message || "An unexpected error occurred. Please try again.")
+        errorMessage = "Server error. Please try again later."
+      } else if (error.message) {
+        errorMessage = error.message
       }
+
+      showToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: errorMessage,
+        duration: 7000
+      })
     },
   })
 
@@ -232,6 +278,7 @@ const UpdatePage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 mb-4">Failed to load itinerary</p>
           <button 
             onClick={() => router.push('/itineraries')}
@@ -288,7 +335,7 @@ const UpdatePage = () => {
                 className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
               >
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                Unsaved changes
+                {changedFields.size} field(s) modified
               </motion.div>
             )}
           </div>
@@ -313,7 +360,10 @@ const UpdatePage = () => {
               </div>
 
               <div className="space-y-6">
-                <CustomFormInput title='Trip Title' name='title' placeholder='e.g., Amazing Safari' />
+                <TitleInput 
+                  currentValue={originalData?.title}
+                  onFieldChange={handleFieldChange}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <CustomFormInput title='Duration (days)' name='duration' placeholder='7' type='number' />
@@ -323,7 +373,10 @@ const UpdatePage = () => {
                 </div>
 
                 <CustomFormInput title='Discount % (Optional)' name='discount' placeholder='e.g., 10' type='number'/>
-                <ItineraryTextArea name='overview' title='Trip Overview' />
+                <ContentEditor 
+                  currentValue={originalData?.overview}
+                  onFieldChange={handleFieldChange}
+                />
               </div>
             </section>
 
@@ -338,7 +391,10 @@ const UpdatePage = () => {
                   <p className="text-sm text-gray-600">Update itinerary images (optional - only upload if you want to replace all images)</p>
                 </div>
               </div>
-              <ItineraryImageUploader />
+              <PhotoUploader 
+                currentImages={itinerary.images}
+                onImagesChange={(images) => handleFieldChange('images', images)}
+              />
             </section>
 
             {/* Destination & Preferences Section */}
@@ -402,7 +458,7 @@ const UpdatePage = () => {
                   <h3 className="text-lg font-semibold text-gray-900">Ready to Update?</h3>
                   <p className="text-sm text-gray-600">
                     {isFormDirty 
-                      ? "You have unsaved changes - review and update the itinerary"
+                      ? `You have ${changedFields.size} modified field(s) - review and update the itinerary`
                       : "No changes detected - make some edits to update"
                     }
                   </p>
@@ -412,8 +468,9 @@ const UpdatePage = () => {
                     type="button"
                     onClick={() => {
                       if (isFormDirty && confirm('Are you sure you want to discard your changes?')) {
-                        reset()
+                        reset(originalData)
                         setIsFormDirty(false)
+                        setChangedFields(new Set())
                       } else if (!isFormDirty) {
                         router.back()
                       }

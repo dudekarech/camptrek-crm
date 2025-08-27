@@ -11,6 +11,7 @@ const Menu = () => {
         <SidebarButton url='/inbox'>Inbox</SidebarButton>
         <SidebarButton url='/itineraries'>Itineraries</SidebarButton>
         <SidebarButton url='/blogs'>Blogs</SidebarButton>
+        <SidebarButton url='/blogs/create'>Create Blog</SidebarButton>
       </ul>
     </section>
   )
