@@ -1,6 +1,5 @@
 'use client'
 
-import { useStaffStore } from '@/store/StaffStore'
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { baseInstance } from '@/constants/api'
@@ -63,16 +62,16 @@ interface BookingsResponse {
 }
 
 const HomePage = () => {
-  const staff = useStaffStore()
+  const handleFetch = async () => {
+    const response = await baseInstance.get<BookingsResponse>("/bookings/");
+    return response.data;
+  };
 
-  const handleFetch = async (): Promise<BookingsResponse> => {
-    const response = await baseInstance.get("/bookings")
-    return response.data
-  }
-
-  const { data: bookingsData, isLoading, error } = useQuery({
+  const { data: bookingsData, isLoading, error } = useQuery<BookingsResponse>({
     queryKey: ['bookings'],
-    queryFn: handleFetch
+    queryFn: handleFetch,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 35,
   })
 
   // Calculate business metrics
@@ -172,7 +171,7 @@ const HomePage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Business Overview</h1>
-              <p className="mt-2 text-gray-600">Welcome back, {staff.staff?.full_name || 'Admin'}</p>
+              <p className="mt-2 text-gray-600">Welcome back, Admin</p>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Calendar className="w-4 h-4" />

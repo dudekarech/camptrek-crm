@@ -12,10 +12,11 @@ import { itinerarySchema, TsItinerarySchema } from '@/store/ItineraryZodStore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { motion } from "motion/react"
-import { MapPin, Calendar, Plane } from "lucide-react"
+import { MapPin, Calendar, Plane, CheckCircle, AlertCircle, Save } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { baseInstance } from '@/constants/api'
+import { useEffect, useState } from 'react'
 
 type imageProp = {
   image_url: string
@@ -30,6 +31,10 @@ type dayImageProp = {
 }
 
 const CreatePage = () => {
+  const [isFormValid, setIsFormValid] = useState(false)
+  const [validationMessage, setValidationMessage] = useState('')
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+
   const methods = useForm<TsItinerarySchema>({
     resolver: zodResolver(itinerarySchema) as any,
     defaultValues: {
@@ -43,11 +48,101 @@ const CreatePage = () => {
       costIncluded: [],
       costExcluded: [],
       discount: 0
-    }
+    },
+    mode: 'onChange' // Enable real-time validation
   })
-  const { handleSubmit } = methods
+
+  const { handleSubmit, watch, formState: { errors, isValid } } = methods
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  // Watch all form fields for changes
+  const watchedValues = watch()
+
+  // Validate form completion
+  useEffect(() => {
+    const validateForm = () => {
+      const errors: string[] = []
+      
+      // Basic required fields
+      if (!watchedValues.title?.trim()) {
+        errors.push('Trip title is required')
+      }
+      
+      if (!watchedValues.overview?.trim()) {
+        errors.push('Trip overview is required')
+      }
+      
+      if (!watchedValues.duration || watchedValues.duration < 1) {
+        errors.push('Duration must be at least 1 day')
+      }
+      
+      if (!watchedValues.price || watchedValues.price < 1) {
+        errors.push('Price must be greater than 0')
+      }
+      
+      if (!watchedValues.arrivalCity?.trim()) {
+        errors.push('Arrival city is required')
+      }
+      
+      if (!watchedValues.departureCity?.trim()) {
+        errors.push('Departure city is required')
+      }
+      
+      // Tags validation
+      if (!watchedValues.tags || watchedValues.tags.length === 0 || 
+          watchedValues.tags.every(tag => !tag.name?.trim())) {
+        errors.push('At least one tag is required')
+      }
+      
+      // Images validation
+      if (!watchedValues.images || watchedValues.images.length === 0) {
+        errors.push('At least one image is required')
+      }
+      
+      // Days validation
+      if (!watchedValues.days || watchedValues.days.length === 0) {
+        errors.push('At least one day is required')
+      } else {
+        // Validate each day
+        watchedValues.days.forEach((day, index) => {
+          if (!day.title?.trim()) {
+            errors.push(`Day ${index + 1} title is required`)
+          }
+          if (!day.details?.trim()) {
+            errors.push(`Day ${index + 1} details are required`)
+          }
+        })
+      }
+      
+      // Cost arrays validation (optional but if provided, must have content)
+      if (watchedValues.costIncluded && watchedValues.costIncluded.length > 0) {
+        const hasValidCostIncluded = watchedValues.costIncluded.some(item => item.item?.trim())
+        if (!hasValidCostIncluded) {
+          errors.push('Cost included items must have valid content')
+        }
+      }
+      
+      if (watchedValues.costExcluded && watchedValues.costExcluded.length > 0) {
+        const hasValidCostExcluded = watchedValues.costExcluded.some(item => item.item?.trim())
+        if (!hasValidCostExcluded) {
+          errors.push('Cost excluded items must have valid content')
+        }
+      }
+
+      setValidationErrors(errors)
+      
+      if (errors.length === 0) {
+        setIsFormValid(true)
+        setValidationMessage('Form is ready to submit!')
+      } else {
+        setIsFormValid(false)
+        setValidationMessage(`Please fix ${errors.length} issue(s)`)
+      }
+    }
+
+    validateForm()
+  }, [watchedValues])
 
   const handleImagesUpload = async (images: { file: File }[]) => {
     const formData = new FormData()
@@ -64,7 +159,6 @@ const CreatePage = () => {
 
     return response.data
   }
-
 
   const createItinerary = async (data: TsItinerarySchema) => {
     const itineraryImages = await handleImagesUpload(data.images)
@@ -100,30 +194,29 @@ const CreatePage = () => {
     }
 
     const response = await baseInstance.post("/itineraries/create", payload)
-    if (response.status !== 201) throw new Error("Failed to create itinerary.");
-    console.log(response.data)
+    if (response.status !== 201) throw new Error("Failed to create itinerary.")
+    
+    return response.data
   }
 
-  const mutate = useMutation({
+  const { mutate: createMutation, isPending } = useMutation({
     mutationFn: createItinerary,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['itineraries'] })
-      router.replace("/itineraries")
+      router.push('/itineraries')
     },
     onError: (error: any) => {
-      console.error("❌ API Error:", error.response?.data || error.message);
-      if (error.response?.status === 400) {
-        alert("Failed to create itinerary. Please check all required fields.");
-      } else if (error.response?.status === 500) {
-        alert("Server error. Please try again later.");
-      } else {
-        alert("An unexpected error occurred. Please try again.");
-      }
+      console.error("Create Error:", error.response?.data || error.message)
+      alert(error.response?.data?.message || "Failed to create itinerary. Please try again.")
     },
   })
 
   const onSubmit = async (data: TsItinerarySchema) => {
-    mutate.mutate(data)
+    if (!isFormValid) {
+      alert('Please fix all validation errors before submitting')
+      return
+    }
+    createMutation(data)
   }
 
   return (
@@ -134,6 +227,21 @@ const CreatePage = () => {
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New Itinerary</h1>
             <p className="text-lg text-gray-600">Plan the perfect adventure</p>
+            
+            {/* Form Validation Status */}
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {isFormValid ? (
+                <>
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-green-600 font-medium">{validationMessage}</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                  <span className="text-amber-600">{validationMessage}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -230,18 +338,58 @@ const CreatePage = () => {
             {/* Submit Section */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">Ready to Create?</h3>
-                  <p className="text-sm text-gray-600">Review the information and create the itinerary</p>
+                  <p className="text-sm text-gray-600">
+                    {isFormValid 
+                      ? "All required fields are complete - you can now create the itinerary"
+                      : "Please complete all required fields to enable submission"
+                    }
+                  </p>
+                  
+                  {/* Validation Errors Display */}
+                  {validationErrors.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      <p className="text-sm font-medium text-red-600">Issues to fix:</p>
+                      <ul className="text-sm text-red-500 space-y-1">
+                        {validationErrors.slice(0, 3).map((error, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                            {error}
+                          </li>
+                        ))}
+                        {validationErrors.length > 3 && (
+                          <li className="text-xs text-red-400">
+                            ...and {validationErrors.length - 3} more
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                 </div>
+                
                 <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={isFormValid ? { scale: 1.01 } : {}}
+                  whileTap={isFormValid ? { scale: 0.95 } : {}}
                   type="submit"
-                  disabled={mutate.isPending}
-                  className="px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  disabled={!isFormValid || isPending}
+                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm flex items-center gap-2 ${
+                    isFormValid && !isPending
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md cursor-pointer' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  Create Itinerary
+                  {isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {isFormValid ? 'Create Itinerary' : 'Complete Required Fields'}
+                    </>
+                  )}
                 </motion.button>
               </div>
             </section>

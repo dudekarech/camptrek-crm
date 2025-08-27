@@ -3,7 +3,10 @@ import React, { useState } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from "motion/react"
-import { z } from 'zod'
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { baseInstance } from "@/constants/api"
+import { blogSchema, TsBlog } from "@/store/blogZodStore"
 import { 
   FileText, 
   User, 
@@ -15,72 +18,92 @@ import {
   Eye
 } from "lucide-react"
 
-// Blog Schema
-const blogSchema = z.object({
-  title: z.string().min(1, { message: "Title is required" }),
-  slug: z.string().min(1, { message: "Slug is required" }),
-  author_name: z.string().min(1, { message: "Author name is required" }),
-  author_email: z.string().email({ message: "Valid email is required" }),
-  image: z.object({
-    file: z.instanceof(File)
-  }).optional(),
-  content: z.string().min(10, { message: "Content must be at least 10 characters" }),
-  subheadings: z.array(z.object({
-    title: z.string().min(1, { message: "Subheading title is required" }),
-    content: z.string().min(1, { message: "Subheading content is required" })
-  })).optional().default([])
-})
-
-type BlogSchema = z.infer<typeof blogSchema>
-
 const CreatePage = () => {
-  const methods = useForm<BlogSchema>({
+  const methods = useForm<TsBlog>({
     resolver: zodResolver(blogSchema),
     defaultValues: {
       title: "",
-      slug: "",
-      author_name: "",
-      author_email: "",
       content: "",
-      subheadings: []
+      image: undefined as any
     }
   })
 
-  const { handleSubmit, register, watch, setValue, formState: { errors } } = methods
+  const queryClient = useQueryClient()
+  const router = useRouter()
   const [isFocused, setIsFocused] = useState(false)
-  const content = watch('content') || ""
-  const subheadings = watch('subheadings') || []
-  const image = watch('image')
+  const [subheadings, setSubheadings] = useState<Array<{ title: string; content: string }>>([])
 
   const addSubheading = () => {
     const newSubheading = { title: '', content: '' }
-    setValue('subheadings', [...subheadings, newSubheading])
+    setSubheadings([...subheadings, newSubheading])
   }
 
   const removeSubheading = (index: number) => {
     const updatedSubheadings = subheadings.filter((_, i) => i !== index)
-    setValue('subheadings', updatedSubheadings)
+    setSubheadings(updatedSubheadings)
   }
 
   const updateSubheading = (index: number, field: 'title' | 'content', value: string) => {
     const updatedSubheadings = [...subheadings]
     updatedSubheadings[index] = { ...updatedSubheadings[index], [field]: value }
-    setValue('subheadings', updatedSubheadings)
+    setSubheadings(updatedSubheadings)
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setValue('image', { file })
+      methods.setValue('image', { file })
     }
   }
 
   const removeImage = () => {
-    setValue('image', undefined)
+    methods.setValue('image', undefined as any)
   }
 
-  const onSubmit = async (data: BlogSchema) => {
-    console.log('Blog data:', data)
+  const handleImagesUpload = async (image: { file: File }) => {
+    const formData = new FormData();
+    formData.append("file", image.file)
+
+    const response = await baseInstance.post(
+      "/blogs/upload-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+  const createBlog = async (data: TsBlog) => {
+    const processedImage = await handleImagesUpload(data.image)
+    const payLoad = {
+      title: data.title,
+      content: data.content,
+      image_url: processedImage.image_url,
+      image_public_id: processedImage.image_public_id
+    }
+
+    const response = await baseInstance.post("/blogs/create", payLoad)
+    if (response.status !== 201) throw new Error("Failed to create blog.");
+  }
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createBlog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blogs'] })
+      router.push('/blogs')
+    }
+  });
+
+  const { handleSubmit, register, watch, formState: { errors } } = methods
+  const content = watch('content') || ""
+  const image = watch('image')
+
+  const onSubmit = async (data: TsBlog) => {
+    mutate(data)
   }
 
   return (
@@ -125,67 +148,6 @@ const CreatePage = () => {
                   />
                   {errors.title && (
                     <p className="text-red-500 text-sm">{errors.title.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700">
-                    <span>Slug</span>
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register('slug')}
-                    placeholder="blog-post-url-slug"
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.slug && (
-                    <p className="text-red-500 text-sm">{errors.slug.message}</p>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Author Information Section */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <User className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Author Information</h2>
-                  <p className="text-sm text-gray-600">Who wrote this blog post</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700">
-                    <span>Author Name</span>
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register('author_name')}
-                    placeholder="Enter author name..."
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.author_name && (
-                    <p className="text-red-500 text-sm">{errors.author_name.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700">
-                    <span>Author Email</span>
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register('author_email')}
-                    type="email"
-                    placeholder="author@example.com"
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.author_email && (
-                    <p className="text-red-500 text-sm">{errors.author_email.message}</p>
                   )}
                 </div>
               </div>
@@ -237,6 +199,10 @@ const CreatePage = () => {
                     </button>
                     <p className="text-sm text-gray-500 mt-2">{image.file.name}</p>
                   </div>
+                )}
+                
+                {errors.image && (
+                  <p className="text-red-500 text-sm">{errors.image.message}</p>
                 )}
               </div>
             </section>
@@ -342,10 +308,24 @@ const CreatePage = () => {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    className="px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                    disabled={isPending}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
+                      isPending
+                        ? 'bg-gray-400 cursor-not-allowed text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                    }`}
                   >
-                    <Save className="w-4 h-4" />
-                    Publish Blog
+                    {isPending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Publish Blog
+                      </>
+                    )}
                   </motion.button>
                 </div>
               </div>
