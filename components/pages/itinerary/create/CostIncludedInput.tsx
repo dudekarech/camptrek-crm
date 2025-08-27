@@ -5,7 +5,7 @@ import React from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 
 const CostIncludedInput = () => {
-    const {register, control} = useFormContext()
+    const {register, control, formState: {errors}} = useFormContext()
     const {fields, remove, append} = useFieldArray({
         control,
         name: "costIncluded"
@@ -82,6 +82,19 @@ const CostIncludedInput = () => {
                         </div>
                     </motion.div>
                 ))}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {errors.costIncluded && (
+                    <motion.p
+                    initial={{ scale: 0.7, opacity: 0, y: -10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.7, opacity: 0, y: -10 }}
+                    className="text-red-500 font-light text-sm"
+                    >
+                        {errors.costIncluded?.message as string}
+                    </motion.p>
+                )}
             </AnimatePresence>
 
             <motion.button

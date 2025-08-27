@@ -5,7 +5,7 @@ import React from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 
 const TagsInput = () => {
-    const {register, control} = useFormContext()
+    const {register, control, formState: {errors}} = useFormContext()
     const {fields, remove, append} = useFieldArray({
         control,
         name: "tags"
@@ -80,6 +80,19 @@ const TagsInput = () => {
                         </div>
                     </motion.div>
                 ))}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {errors.tags && (
+                    <motion.p
+                    initial={{ scale: 0.7, opacity: 0, y: -10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.7, opacity: 0, y: -10 }}
+                    className="text-red-500 font-light text-sm"
+                    >
+                        {errors.tags.message as string}
+                    </motion.p>
+                )}
             </AnimatePresence>
 
             <motion.button
