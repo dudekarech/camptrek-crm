@@ -13,6 +13,21 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { motion } from "motion/react"
 import { MapPin, Calendar, Plane } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { baseInstance } from '@/constants/api'
+
+type imageProp = {
+  image_url: string
+  image_public_id: string
+}
+
+type dayImageProp = {
+  day: number
+  title: string
+  details: string
+  images: imageProp[]
+}
 
 const CreatePage = () => {
   const methods = useForm<TsItinerarySchema>({
@@ -31,9 +46,84 @@ const CreatePage = () => {
     }
   })
   const { handleSubmit } = methods
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const handleImagesUpload = async (images: { file: File }[]) => {
+    const formData = new FormData()
+    
+    images.forEach((image) => {
+      formData.append("files", image.file) // must match the backend param name
+    })
+
+    const response = await baseInstance.post("/itineraries/upload-images", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+
+    return response.data
+  }
+
+
+  const createItinerary = async (data: TsItinerarySchema) => {
+    const itineraryImages = await handleImagesUpload(data.images)
+    const processedDays = await Promise.all(
+      data.days.map(async (day) => {
+        let dayImageUrls: imageProp[] = []
+        if (day.images && day.images.length > 0) {
+          dayImageUrls = await handleImagesUpload(day.images)
+        }
+        return {
+          day: day.day,
+          title: day.title,
+          details: day.details,
+          images: dayImageUrls
+        }
+      })
+    )
+    const payload = {
+      title: data.title,
+      duration: data.duration,
+      overview: data.overview,
+      images: itineraryImages,
+      days: processedDays,
+      price: data.price,
+      tags: data.tags.map((tag) => ({ name: tag.name })),
+      arrival_city: data.arrivalCity,
+      departure_city: data.departureCity,
+      accommodation: data.accommodation,
+      location: data.location,
+      discount: data.discount,
+      cost_inclusive: data.costIncluded?.map((item) => item.item).filter(Boolean) || [],
+      cost_exclusive: data.costExcluded?.map((item) => item.item).filter(Boolean) || []
+    }
+
+    const response = await baseInstance.post("/itineraries/create", payload)
+    if (response.status !== 201) throw new Error("Failed to create itinerary.");
+    console.log(response.data)
+  }
+
+  const mutate = useMutation({
+    mutationFn: createItinerary,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['itineraries'] })
+      router.replace("/itineraries")
+    },
+    onError: (error: any) => {
+      console.error("❌ API Error:", error.response?.data || error.message);
+      if (error.response?.status === 400) {
+        alert("Failed to create itinerary. Please check all required fields.");
+      } else if (error.response?.status === 500) {
+        alert("Server error. Please try again later.");
+      } else {
+        alert("An unexpected error occurred. Please try again.");
+      }
+    },
+  })
 
   const onSubmit = async (data: TsItinerarySchema) => {
-    console.log(data)
+    mutate.mutate(data)
   }
 
   return (
@@ -69,13 +159,13 @@ const CreatePage = () => {
                 <CustomFormInput title='Trip Title' name='title' placeholder='e.g., Amazing Safari' />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <CustomFormInput title='Duration (days)' name='duration' placeholder='7' />
+                  <CustomFormInput title='Duration (days)' name='duration' placeholder='7' type='number' />
                   <CustomFormInput title='Arrival City' name='arrivalCity' placeholder='Nairobi' />
                   <CustomFormInput title='Departure City' name='departureCity' placeholder='Mombasa' />
-                  <CustomFormInput title='Price (USD)' name='price' placeholder='2500' />
+                  <CustomFormInput title='Price (USD)' name='price' placeholder='2500' type='number' />
                 </div>
 
-                <CustomFormInput title='Discount % (Optional)' name='discount' placeholder='e.g., 10' />
+                <CustomFormInput title='Discount % (Optional)' name='discount' placeholder='e.g., 10' type='number'/>
                 <ItineraryTextArea name='overview' title='Trip Overview' />
               </div>
             </section>
@@ -148,7 +238,8 @@ const CreatePage = () => {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={mutate.isPending}
+                  className="px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
                 >
                   Create Itinerary
                 </motion.button>

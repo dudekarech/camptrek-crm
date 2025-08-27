@@ -4,29 +4,29 @@ import React from "react";
 import { useFormContext } from "react-hook-form";
 
 type CustomFormInputProp = {
-    title: string
-    name: string
-    type?: "text" | "number"
-    placeholder?: string
-    required?: boolean
-    description?: string
-}
+  title: string;
+  name: string;
+  type?: "text" | "number";
+  placeholder?: string;
+  required?: boolean;
+  description?: string;
+};
 
-const CustomFormInput = ({ 
-  title, 
-  name, 
-  type = "text", 
+const CustomFormInput = ({
+  title,
+  name,
+  type = "text",
   placeholder,
   required = false,
-  description 
+  description,
 }: CustomFormInputProp) => {
   const { register, formState: { errors }, watch } = useFormContext();
   const fieldValue = watch(name);
   const hasError = !!errors[name];
-  const hasValue = fieldValue && fieldValue.length > 0;
+  const hasValue = fieldValue !== undefined && fieldValue !== "";
 
   return (
-    <motion.div 
+    <motion.div
       className="space-y-2"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -37,7 +37,7 @@ const CustomFormInput = ({
         <label className="flex items-center gap-1 text-sm font-medium text-gray-700">
           <span className="capitalize">{title}</span>
           {required && (
-            <motion.span 
+            <motion.span
               className="text-red-500"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -55,7 +55,9 @@ const CustomFormInput = ({
       {/* Input Container */}
       <div className="relative">
         <motion.input
-          {...register(name)}
+          {...register(name, {
+            valueAsNumber: type === "number", // ✅ ensures numbers come as numbers
+          })}
           type={type}
           placeholder={placeholder}
           className={`
@@ -64,17 +66,17 @@ const CustomFormInput = ({
             placeholder:text-gray-400
             focus:outline-none focus:ring-0
             ${hasError 
-              ? 'border-red-300 focus:border-red-500 bg-red-50/30' 
+              ? "border-red-300 focus:border-red-500 bg-red-50/30" 
               : hasValue 
-                ? 'border-green-300 focus:border-green-500 bg-green-50/30'
-                : 'border-gray-200 focus:border-blue-500 hover:border-gray-300'
+                ? "border-green-300 focus:border-green-500 bg-green-50/30"
+                : "border-gray-200 focus:border-blue-500 hover:border-gray-300"
             }
-            ${hasValue ? 'shadow-sm' : ''}
+            ${hasValue ? "shadow-sm" : ""}
           `}
           whileFocus={{ scale: 1.01 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
         />
-        
+
         {/* Input Status Indicator */}
         <AnimatePresence>
           {hasValue && !hasError && (
@@ -127,32 +129,6 @@ const CustomFormInput = ({
         )}
       </AnimatePresence>
 
-      {/* Success Message (Optional) */}
-      <AnimatePresence>
-        {hasValue && !hasError && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
-            className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-md"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 500 }}
-              className="flex-shrink-0"
-            >
-              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </motion.div>
-            <p className="text-sm text-green-600 font-medium">
-              Looks good!
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };
