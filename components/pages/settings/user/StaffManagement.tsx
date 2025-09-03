@@ -1,8 +1,9 @@
 'use client'
-import React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { baseInstance } from '@/constants/api'
-import { Users, Search, Filter, MoreVertical, Edit, Trash2, Eye } from 'lucide-react'
+import { Users, Search, Filter, MoreVertical, Edit, Trash2, Eye, AlertTriangle, X } from 'lucide-react'
+import { useStaffStore } from '@/store/StaffStore'
 
 interface Manager {
   id: number
@@ -26,6 +27,18 @@ interface StaffResponse {
 }
 
 const StaffManagement = () => {
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean
+    staffMember: StaffMember | null
+  }>({
+    isOpen: false,
+    staffMember: null
+  })
+  const [deleteError, setDeleteError] = useState<string>('')
+  
+  const { id: currentUserId } = useStaffStore()
+  const queryClient = useQueryClient()
+
   const { data: staffData, isLoading, error, refetch } = useQuery<StaffResponse>({
     queryKey: ['staff'],
     queryFn: async () => {
@@ -37,6 +50,39 @@ const StaffManagement = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
+  // Delete staff member mutation
+  const deleteStaffMutation = useMutation({
+    mutationFn: async (staffId: number) => {
+      console.log('Deleting staff member with ID:', staffId)
+      const response = await baseInstance.delete(`/staff/${staffId}`)
+      console.log('Delete response:', response.status)
+      return response.data
+    },
+    onSuccess: () => {
+      console.log('Staff member deleted successfully')
+      setDeleteConfirm({ isOpen: false, staffMember: null })
+      setDeleteError('')
+      // Invalidate and refetch staff data
+      queryClient.invalidateQueries({ queryKey: ['staff'] })
+    },
+    onError: (error: any) => {
+      console.error('Delete staff error:', error)
+      let errorMsg = 'Failed to delete staff member'
+      
+      if (error.response?.status === 403) {
+        errorMsg = 'You do not have permission to delete staff members'
+      } else if (error.response?.status === 404) {
+        errorMsg = 'Staff member not found'
+      } else if (error.response?.status === 400) {
+        errorMsg = 'Cannot delete this staff member. They may have subordinates or be an admin.'
+      } else if (error.response?.data?.detail) {
+        errorMsg = error.response.data.detail
+      }
+      
+      setDeleteError(errorMsg)
+    }
+  })
+
   // Extract staff array and count from response
   const staff = staffData?.staff || []
   const staffCount = staffData?.staff_count || 0
@@ -45,6 +91,32 @@ const StaffManagement = () => {
   console.log('Staff data received:', staffData)
   console.log('Staff array:', staff)
   console.log('Staff count:', staffCount)
+
+  // Helper functions
+  const handleDeleteClick = (member: StaffMember) => {
+    setDeleteError('')
+    setDeleteConfirm({ isOpen: true, staffMember: member })
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm.staffMember) {
+      deleteStaffMutation.mutate(deleteConfirm.staffMember.id)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm({ isOpen: false, staffMember: null })
+    setDeleteError('')
+  }
+
+  const canDeleteStaff = (member: StaffMember) => {
+    // Cannot delete self
+    if (member.id.toString() === currentUserId) {
+      return false
+    }
+    // Only admins can delete (this is handled by the backend, but we can show/hide the button)
+    return true
+  }
 
   if (isLoading) {
     return (
@@ -154,7 +226,16 @@ const StaffManagement = () => {
                     <button className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDeleteClick(member)}
+                      disabled={!canDeleteStaff(member)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        canDeleteStaff(member)
+                          ? 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                          : 'text-gray-300 cursor-not-allowed'
+                      }`}
+                      title={canDeleteStaff(member) ? 'Delete staff member' : 'Cannot delete yourself'}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -186,6 +267,68 @@ const StaffManagement = () => {
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Staff Member</h3>
+                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700">
+                  Are you sure you want to delete{' '}
+                  <span className="font-semibold">
+                    {deleteConfirm.staffMember?.first_name} {deleteConfirm.staffMember?.last_name}
+                  </span>
+                  ?
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  This will permanently remove them from the system and revoke all access.
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{deleteError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  disabled={deleteStaffMutation.isPending}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteStaffMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleteStaffMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Staff Member'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
