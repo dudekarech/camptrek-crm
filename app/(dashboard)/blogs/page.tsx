@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { baseInstance } from "@/constants/api"
 import { useToast } from '@/components/ui/ToastContainer'
 import { 
@@ -53,6 +53,7 @@ const BlogSkeleton = () => (
 
 const BlogsPage = () => {
   const { showToast } = useToast()
+  const queryClient = useQueryClient()
 
   const handleFetch = async () => {
     try {
@@ -61,6 +62,36 @@ const BlogsPage = () => {
     } catch (error: any) {
       console.error("Error fetching blogs:", error)
       throw new Error(error.response?.data?.message || "Failed to fetch blogs")
+    }
+  }
+
+  // Delete blog mutation
+  const deleteBlogMutation = useMutation({
+    mutationFn: async (blogId: string) => {
+      const response = await baseInstance.delete(`/blogs/delete/${blogId}`)
+      return response.data
+    },
+    onSuccess: (data) => {
+      showToast({
+        type: 'success',
+        title: 'Blog Deleted',
+        message: data.message || 'Blog deleted successfully'
+      })
+      queryClient.invalidateQueries({ queryKey: ['blogs'] })
+    },
+    onError: (error: any) => {
+      console.error('Delete blog error:', error)
+      showToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: error.response?.data?.message || 'Failed to delete blog'
+      })
+    }
+  })
+
+  const handleDeleteBlog = (blogId: string, blogTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${blogTitle}"? This action cannot be undone.`)) {
+      deleteBlogMutation.mutate(blogId)
     }
   }
 
@@ -223,11 +254,24 @@ const BlogsPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <Link 
+                      href={`/blogs/update/${blog.id}`}
+                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit blog"
+                    >
                       <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4" />
+                    </Link>
+                    <button 
+                      onClick={() => handleDeleteBlog(blog.id, blog.title)}
+                      disabled={deleteBlogMutation.isPending}
+                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete blog"
+                    >
+                      {deleteBlogMutation.isPending ? (
+                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
