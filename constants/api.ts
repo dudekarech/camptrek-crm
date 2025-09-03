@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const baseInstance = axios.create({
-  baseURL: "https://tours-backend-msss.onrender.com",
+  baseURL: "http://localhost:8000",
   withCredentials: true, // send cookies automatically
 });
 
@@ -17,7 +17,7 @@ baseInstance.interceptors.response.use(
 
       try {
         // Call refresh token endpoint
-        await baseInstance.post("/auth/refresh-token");
+        await baseInstance.post("/staff/auth/refresh-token");
 
         // Retry the original request
         return baseInstance(originalRequest);

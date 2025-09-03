@@ -1,16 +1,12 @@
 "use client";
 import ItineraryCard from "@/components/pages/itinerary/main/ItineraryCard";
-
 import SkeletonCard from "@/components/pages/itinerary/main/SkeletonCard";
 import { baseInstance } from "@/constants/api";
 import { ItineraryProps } from "@/constants/propConstants";
-
-
-
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { Plus, Map, Calendar, Users, DollarSign } from "lucide-react";
 
 const ItinerariesPage = () => {
   const router = useRouter();
@@ -32,38 +28,132 @@ const ItinerariesPage = () => {
 
   if (isLoading)
     return (
-      <div className="grid mt-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <SkeletonCard key={index} />
-        ))}
+      <div className="space-y-8">
+        {/* Page Header */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg mb-4">
+            <Map className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Safari Itineraries</h1>
+          <p className="text-gray-600 text-lg">Manage your amazing safari experiences and adventures</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </div>
       </div>
     );
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between items-center mb-3">
-        <div>
-          <p className="text-2xl font-bold">Itineraries</p>
-          <p className="text-sm text-gray-500">Manage your itineraries</p>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg mb-4">
+          <Map className="w-8 h-8 text-white" />
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleCreate}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer"
-        >
-          Create
-        </motion.button>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Safari Itineraries</h1>
+        <p className="text-gray-600 text-lg">Manage your amazing safari experiences and adventures</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data && data.itineraries.length > 0 ? (
+      {/* Statistics Cards */}
+      {data && data.itineraries && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Map className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Itineraries</p>
+                <p className="text-2xl font-bold text-gray-900">{data.itineraries.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Average Duration</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.itineraries.length > 0 
+                    ? Math.round(data.itineraries.reduce((sum, it) => sum + it.duration, 0) / data.itineraries.length)
+                    : 0
+                  } days
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Popular Destinations</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.itineraries.length > 0 
+                    ? new Set(data.itineraries.map(it => it.location)).size
+                    : 0
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Average Price</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${data.itineraries.length > 0 
+                    ? Math.round(data.itineraries.reduce((sum, it) => sum + it.price, 0) / data.itineraries.length).toLocaleString()
+                    : 0
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Button */}
+      <div className="flex justify-center">
+        <button
+          onClick={handleCreate}
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+        >
+          <Plus className="w-5 h-5" />
+          Create New Itinerary
+        </button>
+      </div>
+
+      {/* Itineraries Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {data && data.itineraries && data.itineraries.length > 0 ? (
           data.itineraries.map((itinerary: ItineraryProps) => (
             <ItineraryCard key={itinerary.id} {...itinerary} />
           ))
         ) : (
-          <div>
-            <p>No itineraries found</p>
+          <div className="col-span-full text-center py-12">
+            <Map className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Itineraries Yet</h3>
+            <p className="text-gray-600 mb-6">Start creating amazing safari experiences for your customers.</p>
+            <button
+              onClick={handleCreate}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+            >
+              <Plus className="w-5 h-5" />
+              Create Your First Itinerary
+            </button>
           </div>
         )}
       </div>

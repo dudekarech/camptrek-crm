@@ -1,17 +1,36 @@
+'use client'
 import React from 'react'
 import SidebarButton from './SidebarButton'
+import { useStaffStore } from '@/store/StaffStore'
+
 
 const Menu = () => {
+  const { role } = useStaffStore()
+  
+  // Check if user is admin (not staff)
+  const isAdmin = role?.toLowerCase() !== 'staff'
+
   return (
-    <section>
-      <h2 className='px-2'>Main Menu</h2>
-      <hr className='m-2 border-gray-500' />
-      <ul className='flex flex-col gap-2'>
-        <SidebarButton>Business Overview</SidebarButton>
+    <section className="mb-8">
+      <h2 className='text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2'>
+        Main Menu
+      </h2>
+      <ul className='space-y-2'>
+        {isAdmin && <SidebarButton>Business Overview</SidebarButton>}
         <SidebarButton url='/inbox'>Inbox</SidebarButton>
         <SidebarButton url='/itineraries'>Itineraries</SidebarButton>
-        <SidebarButton url='/blogs'>Blogs</SidebarButton>
-        <SidebarButton url='/blogs/create'>Create Blog</SidebarButton>
+        
+        {/* Blogs Section */}
+        <li>
+          <SidebarButton url='/blogs'>Blogs</SidebarButton>
+          {isAdmin && (
+            <ul className='ml-4 mt-1 space-y-1'>
+              <li>
+                <SidebarButton url='/blogs/create'>Create Blog</SidebarButton>
+              </li>
+            </ul>
+          )}
+        </li>
       </ul>
     </section>
   )

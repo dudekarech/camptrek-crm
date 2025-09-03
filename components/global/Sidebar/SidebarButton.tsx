@@ -1,6 +1,6 @@
 'use client'
-import { motion } from 'motion/react'
-import { useRouter } from 'next/navigation'
+
+import { useRouter, usePathname } from 'next/navigation'
 import React from 'react'
 
 type SidebarButtonProp = {
@@ -10,6 +10,8 @@ type SidebarButtonProp = {
 
 const SidebarButton = ({children, url} : SidebarButtonProp) => {
     const router = useRouter()
+    const pathname = usePathname()
+    
     const handleClick = () => {
         if(url){
             router.push(url)
@@ -18,16 +20,20 @@ const SidebarButton = ({children, url} : SidebarButtonProp) => {
         }
     }
 
-    return (
-        <motion.button
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.98 }}
-        className='text-left text-md cursor-pointer hover:bg-cyan-600 p-2 ml-2 rounded-lg'
-        onClick={handleClick}
-        >
-            {children}
-        </motion.button>
-    )
+    const isActive = url ? pathname === url : pathname === '/'
+
+      return (
+    <button
+      className={`w-full text-left text-sm font-medium cursor-pointer p-3 rounded-xl transition-all duration-200 ${
+        isActive 
+          ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg' 
+          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+      }`}
+      onClick={handleClick}
+    >
+      {children}
+    </button>
+  )
     }
 
 export default SidebarButton
