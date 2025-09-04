@@ -107,7 +107,7 @@ const ItineraryTextArea = ({
               placeholder:text-gray-400 text-gray-700
               focus:outline-none
               transition-all duration-200
-              ${isFocused ? 'placeholder:opacity-60' : ''}
+              ${isFocused ? 'placeholder:opacity-60' : ''} resize-y
             `}
             whileFocus={{ scale: 1.005 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
