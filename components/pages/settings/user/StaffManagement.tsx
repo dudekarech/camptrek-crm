@@ -6,12 +6,12 @@ import { Users, Search, Filter, MoreVertical, Edit, Trash2, Eye, AlertTriangle, 
 import { useStaffStore } from '@/store/StaffStore'
 
 interface Manager {
-  id: number
+  id: string  // Changed from number to string
   name: string
 }
 
 interface StaffMember {
-  id: number
+  id: string  // Changed from number to string
   first_name: string
   last_name: string
   email: string
@@ -52,7 +52,7 @@ const StaffManagement = () => {
 
   // Delete staff member mutation
   const deleteStaffMutation = useMutation({
-    mutationFn: async (staffId: number) => {
+    mutationFn: async (staffId: string) => {
       console.log('Deleting staff member with ID:', staffId)
       const response = await baseInstance.delete(`/staff/${staffId}`)
       console.log('Delete response:', response.status)

@@ -2,7 +2,7 @@ import { useStaffStore } from "@/store/StaffStore";
 import axios from "axios";
 
 export const baseInstance = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
   withCredentials: true, // send cookies automatically
 });
 
