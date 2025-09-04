@@ -81,7 +81,7 @@ const ItinerariesPage = () => {
                 <p className="text-sm font-medium text-gray-600">Average Duration</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {data.itineraries.length > 0 
-                    ? Math.round(data.itineraries.reduce((sum, it) => sum + it.duration, 0) / data.itineraries.length)
+                    ? Math.round(data.itineraries.reduce((sum: number, it: ItineraryProps) => sum + it.duration, 0) / data.itineraries.length)
                     : 0
                   } days
                 </p>
@@ -98,7 +98,7 @@ const ItinerariesPage = () => {
                 <p className="text-sm font-medium text-gray-600">Popular Destinations</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {data.itineraries.length > 0 
-                    ? new Set(data.itineraries.map(it => it.location)).size
+                    ? new Set(data.itineraries.map((it: ItineraryProps) => it.location)).size
                     : 0
                   }
                 </p>
@@ -115,7 +115,7 @@ const ItinerariesPage = () => {
                 <p className="text-sm font-medium text-gray-600">Average Price</p>
                 <p className="text-2xl font-bold text-gray-900">
                   ${data.itineraries.length > 0 
-                    ? Math.round(data.itineraries.reduce((sum, it) => sum + it.price, 0) / data.itineraries.length).toLocaleString()
+                    ? Math.round(data.itineraries.reduce((sum: number, it: ItineraryProps) => sum + it.price, 0) / data.itineraries.length).toLocaleString()
                     : 0
                   }
                 </p>
