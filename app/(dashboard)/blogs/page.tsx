@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { baseInstance } from "@/constants/api"
 import { useToast } from '@/components/ui/ToastContainer'
@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import Link from 'next/link'
+import DeleteConfirmationDialog from '@/components/global/DeleteDialog/DeleteConfirmationDialog'
 
 // Blog interface based on the API response
 interface Blog {
@@ -54,6 +55,8 @@ const BlogSkeleton = () => (
 const BlogsPage = () => {
   const { showToast } = useToast()
   const queryClient = useQueryClient()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null)
 
   const handleFetch = async () => {
     try {
@@ -78,6 +81,8 @@ const BlogsPage = () => {
         message: data.message || 'Blog deleted successfully'
       })
       queryClient.invalidateQueries({ queryKey: ['blogs'] })
+      setDeleteDialogOpen(false)
+      setBlogToDelete(null)
     },
     onError: (error: any) => {
       console.error('Delete blog error:', error)
@@ -89,9 +94,14 @@ const BlogsPage = () => {
     }
   })
 
-  const handleDeleteBlog = (blogId: string, blogTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${blogTitle}"? This action cannot be undone.`)) {
-      deleteBlogMutation.mutate(blogId)
+  const handleDeleteClick = (blog: Blog) => {
+    setBlogToDelete(blog)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (blogToDelete) {
+      deleteBlogMutation.mutate(blogToDelete.id)
     }
   }
 
@@ -130,7 +140,7 @@ const BlogsPage = () => {
           <div className="flex gap-3 justify-center">
             <button
               onClick={handleRetry}
-              className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl transition-colors flex items-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
               Try Again
@@ -262,16 +272,11 @@ const BlogsPage = () => {
                       <Edit className="w-4 h-4" />
                     </Link>
                     <button 
-                      onClick={() => handleDeleteBlog(blog.id, blog.title)}
-                      disabled={deleteBlogMutation.isPending}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleDeleteClick(blog)}
+                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete blog"
                     >
-                      {deleteBlogMutation.isPending ? (
-                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -293,6 +298,19 @@ const BlogsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {blogToDelete && (
+        <DeleteConfirmationDialog
+          title="Delete Blog"
+          itemName={blogToDelete.title}
+          itemType="Blog"
+          isOpen={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirmDelete={handleConfirmDelete}
+          isDeleting={deleteBlogMutation.isPending}
+        />
+      )}
     </div>
   )
 }

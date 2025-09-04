@@ -426,15 +426,6 @@ const UpdatePage = () => {
                 </div>
                 <div className="flex gap-3">
                   <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md bg-gray-600 hover:bg-gray-700 text-white flex items-center gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Preview
-                  </motion.button>
-                  <motion.button
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
