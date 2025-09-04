@@ -27,7 +27,7 @@ const CreatePage = () => {
   const shouldShowDebugInfo = ENVIRONMENT === "development";
 
   const methods = useForm<TsItinerarySchema>({
-    resolver: zodResolver(itinerarySchema),
+    resolver: zodResolver(itinerarySchema) as any,
     mode: "onChange",
     defaultValues: {
       title: "",
