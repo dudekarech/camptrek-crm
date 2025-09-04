@@ -23,13 +23,6 @@ const Menu = () => {
         {/* Blogs Section */}
         <li>
           <SidebarButton url='/blogs'>Blogs</SidebarButton>
-          {isAdmin && (
-            <ul className='ml-4 mt-1 space-y-1'>
-              <li>
-                <SidebarButton url='/blogs/create'>Create Blog</SidebarButton>
-              </li>
-            </ul>
-          )}
         </li>
       </ul>
     </section>
