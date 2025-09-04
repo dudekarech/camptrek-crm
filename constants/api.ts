@@ -1,3 +1,4 @@
+import { useStaffStore } from "@/store/StaffStore";
 import axios from "axios";
 
 export const baseInstance = axios.create({
@@ -11,20 +12,32 @@ baseInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If request failed with 401 and we haven’t retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Don't retry on login, register, or refresh-token endpoints
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                          originalRequest.url?.includes('/auth/register') || 
+                          originalRequest.url?.includes('/auth/refresh-token');
+
+    // If request failed with 401, we haven't retried yet, and it's not an auth endpoint
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       try {
+        console.log("🔄 Attempting token refresh...");
         // Call refresh token endpoint
         await baseInstance.post("/staff/auth/refresh-token");
+        console.log("✅ Token refreshed successfully");
 
         // Retry the original request
         return baseInstance(originalRequest);
       } catch (refreshError) {
-        console.error("Refresh token failed:", refreshError);
-        // redirect to login
-        window.location.href = "/sign-in";
+        console.error("❌ Refresh token failed:", refreshError);
+        // Clear any stored user data
+        useStaffStore.getState().setNull();
+        
+        // Only redirect if we're not already on the login page
+        if (window.location.pathname !== '/sign-in') {
+          window.location.href = "/sign-in";
+        }
       }
     }
 
