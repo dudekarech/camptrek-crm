@@ -19,7 +19,7 @@ const ItineraryTextArea = ({
   placeholder,
   required = false,
   description,
-  maxLength = 800,
+  maxLength = 2000,
   rows = 4
 }: ItineraryTextAreaProp) => {
   const { register, formState: { errors }, watch } = useFormContext();

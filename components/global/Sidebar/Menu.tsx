@@ -17,7 +17,6 @@ const Menu = () => {
       </h2>
       <ul className='space-y-2'>
         {isAdmin && <SidebarButton>Business Overview</SidebarButton>}
-        <SidebarButton url='/inbox'>Inbox</SidebarButton>
         <SidebarButton url='/itineraries'>Itineraries</SidebarButton>
         
         {/* Blogs Section */}
