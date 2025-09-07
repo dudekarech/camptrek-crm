@@ -1,6 +1,6 @@
 'use client'
 import { SignInSchema, TsSignIn } from '@/store/authZodStore';
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link';
@@ -10,7 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Lock, Mail, Eye, EyeOff, Mountain, Compass } from 'lucide-react';
 
-const SignInPage = () => {
+// Component that uses useSearchParams
+const SignInForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
@@ -321,6 +322,22 @@ const SignInPage = () => {
         </div>
       </div>
     </div>
+  )
+}
+
+// Main component with Suspense boundary
+const SignInPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   )
 }
 
