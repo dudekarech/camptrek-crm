@@ -19,7 +19,7 @@ const ItineraryTextArea = ({
   placeholder,
   required = false,
   description,
-  maxLength = 800,
+  maxLength = 2000,
   rows = 4
 }: ItineraryTextAreaProp) => {
   const { register, formState: { errors }, watch } = useFormContext();
@@ -107,7 +107,7 @@ const ItineraryTextArea = ({
               placeholder:text-gray-400 text-gray-700
               focus:outline-none
               transition-all duration-200
-              ${isFocused ? 'placeholder:opacity-60' : ''}
+              ${isFocused ? 'placeholder:opacity-60' : ''} resize-y
             `}
             whileFocus={{ scale: 1.005 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}

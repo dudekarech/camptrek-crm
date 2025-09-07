@@ -16,9 +16,9 @@ const ItinerariesPage = () => {
   };
 
   const { data, error, isLoading } = useQuery({
-    queryKey: ["itineraries",],
+    queryKey: ["itineraries"],
     queryFn: fetchItineraries,
-    staleTime: 1000 * 60 * 30, 
+    staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 35,
   });
 
@@ -30,14 +30,21 @@ const ItinerariesPage = () => {
     return (
       <div className="space-y-8">
         {/* Page Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg mb-4">
+        <div className="flex items-start gap-4">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
             <Map className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Safari Itineraries</h1>
-          <p className="text-gray-600 text-lg">Manage your amazing safari experiences and adventures</p>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Safari Itineraries
+            </h1>
+            <p className="text-gray-600 text-lg">
+              Manage your amazing safari experiences and adventures
+            </p>
+          </div>
         </div>
 
+        {/* Loading Skeletons */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, index) => (
             <SkeletonCard key={index} />
@@ -49,12 +56,30 @@ const ItinerariesPage = () => {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg mb-4">
-          <Map className="w-8 h-8 text-white" />
+      <div className="flex items-center justify-between p-1">
+        {/* Left Section */}
+        <div className="flex items-start gap-4">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+            <Map className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              Safari Itineraries
+            </h1>
+            <p className="text-gray-600 text-lg">
+              Manage your amazing safari experiences and adventures
+            </p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Safari Itineraries</h1>
-        <p className="text-gray-600 text-lg">Manage your amazing safari experiences and adventures</p>
+
+        {/* Create Itinerary Button */}
+        <button
+          onClick={handleCreate}
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 hover:scale-105"
+        >
+          <Plus className="w-5 h-5" />
+          Create New Itinerary
+        </button>
       </div>
 
       {/* Statistics Cards */}
@@ -66,8 +91,12 @@ const ItinerariesPage = () => {
                 <Map className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Itineraries</p>
-                <p className="text-2xl font-bold text-gray-900">{data.itineraries.length}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Itineraries
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.itineraries.length}
+                </p>
               </div>
             </div>
           </div>
@@ -78,12 +107,20 @@ const ItinerariesPage = () => {
                 <Calendar className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Average Duration</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Average Duration
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {data.itineraries.length > 0 
-                    ? Math.round(data.itineraries.reduce((sum: number, it: ItineraryProps) => sum + it.duration, 0) / data.itineraries.length)
-                    : 0
-                  } days
+                  {data.itineraries.length > 0
+                    ? Math.round(
+                        data.itineraries.reduce(
+                          (sum: number, it: ItineraryProps) =>
+                            sum + it.duration,
+                          0
+                        ) / data.itineraries.length
+                      )
+                    : 0}{" "}
+                  days
                 </p>
               </div>
             </div>
@@ -95,46 +132,23 @@ const ItinerariesPage = () => {
                 <Users className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Popular Destinations</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {data.itineraries.length > 0 
-                    ? new Set(data.itineraries.map((it: ItineraryProps) => it.location)).size
-                    : 0
-                  }
+                <p className="text-sm font-medium text-gray-600">
+                  Popular Destinations
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Price</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${data.itineraries.length > 0 
-                    ? Math.round(data.itineraries.reduce((sum: number, it: ItineraryProps) => sum + it.price, 0) / data.itineraries.length).toLocaleString()
-                    : 0
-                  }
+                  {data.itineraries.length > 0
+                    ? new Set(
+                        data.itineraries.map(
+                          (it: ItineraryProps) => it.location
+                        )
+                      ).size
+                    : 0}
                 </p>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Create Button */}
-      <div className="flex justify-center">
-        <button
-          onClick={handleCreate}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
-        >
-          <Plus className="w-5 h-5" />
-          Create New Itinerary
-        </button>
-      </div>
 
       {/* Itineraries Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -145,8 +159,12 @@ const ItinerariesPage = () => {
         ) : (
           <div className="col-span-full text-center py-12">
             <Map className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Itineraries Yet</h3>
-            <p className="text-gray-600 mb-6">Start creating amazing safari experiences for your customers.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Itineraries Yet
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Start creating amazing safari experiences for your customers.
+            </p>
             <button
               onClick={handleCreate}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"

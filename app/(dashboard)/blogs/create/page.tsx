@@ -9,13 +9,10 @@ import { baseInstance } from "@/constants/api"
 import { blogSchema, TsBlog } from "@/store/blogZodStore"
 import { 
   FileText, 
-  User, 
   Image, 
   Type, 
-  Plus,
   Trash2,
-  Save,
-  Eye
+  Save
 } from "lucide-react"
 
 const CreatePage = () => {
@@ -30,24 +27,6 @@ const CreatePage = () => {
 
   const queryClient = useQueryClient()
   const router = useRouter()
-  const [isFocused, setIsFocused] = useState(false)
-  const [subheadings, setSubheadings] = useState<Array<{ title: string; content: string }>>([])
-
-  const addSubheading = () => {
-    const newSubheading = { title: '', content: '' }
-    setSubheadings([...subheadings, newSubheading])
-  }
-
-  const removeSubheading = (index: number) => {
-    const updatedSubheadings = subheadings.filter((_, i) => i !== index)
-    setSubheadings(updatedSubheadings)
-  }
-
-  const updateSubheading = (index: number, field: 'title' | 'content', value: string) => {
-    const updatedSubheadings = [...subheadings]
-    updatedSubheadings[index] = { ...updatedSubheadings[index], [field]: value }
-    setSubheadings(updatedSubheadings)
-  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,7 +78,6 @@ const CreatePage = () => {
   });
 
   const { handleSubmit, register, watch, formState: { errors } } = methods
-  const content = watch('content') || ""
   const image = watch('image')
 
   const onSubmit = async (data: TsBlog) => {
@@ -215,7 +193,7 @@ const CreatePage = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">Blog Content</h2>
-                  <p className="text-sm text-gray-600">Write your blog content with optional subheadings</p>
+                  <p className="text-sm text-gray-600">Write your blog content</p>
                 </div>
               </div>
 
@@ -227,62 +205,13 @@ const CreatePage = () => {
                   </label>
                   <textarea
                     {...register('content')}
-                    placeholder="Write your main blog content here..."
-                    rows={8}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none resize-none"
+                    placeholder="Write your blog content here..."
+                    rows={10}
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none resize-y min-h-[200px]"
                   />
                   {errors.content && (
                     <p className="text-red-500 text-sm">{errors.content.message}</p>
                   )}
-                </div>
-
-                {/* Subheadings Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-700">Subheadings & Sections</h4>
-                    <button
-                      type="button"
-                      onClick={addSubheading}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add Section
-                    </button>
-                  </div>
-
-                  {subheadings.map((subheading, index) => (
-                    <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center justify-between mb-3">
-                        <h5 className="text-sm font-medium text-gray-700">Section {index + 1}</h5>
-                        <button
-                          type="button"
-                          onClick={() => removeSubheading(index)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          placeholder="Subheading title..."
-                          value={subheading.title}
-                          onChange={(e) => updateSubheading(index, 'title', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <textarea
-                          placeholder="Subheading content..."
-                          rows={3}
-                          value={subheading.content}
-                          onChange={(e) => updateSubheading(index, 'content', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                        />
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </section>

@@ -11,15 +11,6 @@ const UserPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg mb-4">
-          <Users className="w-8 h-8 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-        <p className="text-gray-600 text-lg">Manage your team members and staff accounts</p>
-      </div>
-
       {/* Tab Navigation */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-100">
