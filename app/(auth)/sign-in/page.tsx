@@ -29,8 +29,6 @@ const SignInForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get the redirect destination from URL params (set by middleware)
-  const redirectTo = searchParams.get('redirectTo') || '/';
 
   const onSubmit = async (data: TsSignIn) => {
     setIsLoading(true);
@@ -52,10 +50,9 @@ const SignInForm = () => {
         response.data.staff_info.role
       );
 
-      console.log(`✅ Login successful, redirecting to: ${redirectTo}`);
       
       // Redirect to intended destination or dashboard home
-      router.push(redirectTo);
+      router.push('/');
       
     } catch (err: any) {
       console.error('❌ Login error:', err);
