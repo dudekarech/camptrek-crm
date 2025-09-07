@@ -18,23 +18,8 @@ export const metadata: Metadata = {
   title: "Camptrek Dashboard",
   description: "Manage itineraries, bookings, and adventures seamlessly with Camptrek.",
   keywords: ["Camptrek", "Dashboard", "Travel", "Itineraries", "Bookings", "Tours", "Adventure"],
-  authors: [{ name: "MindFirm" }],
-  openGraph: {
-    title: "Camptrek Dashboard",
-    description: "Your all-in-one platform to manage itineraries, bookings, and adventures.",
-    url: "https://camptrek.com/dashboard",
-    siteName: "Camptrek",
-    images: [
-      {
-        url: "https://camptrek.com/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Camptrek Dashboard Preview",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
+  authors: [{ name: "MindFirm solutions" }],
+
 };
 
 
